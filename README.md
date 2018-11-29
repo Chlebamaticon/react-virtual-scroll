@@ -16,7 +16,7 @@ const styles = {
     width: "100%"
 };
 
-export X extends React.PureComponent {
+export class X extends React.PureComponent {
     ...
     render() {
         return (

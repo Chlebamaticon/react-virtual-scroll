@@ -1,39 +1,32 @@
-const CleanWebpackPlugin = require('clean-webpack-plugin');
-const webpack = require('webpack');
 const path = require('path');
 const package = require('./package.json');
 
-const IS_PROD = process.env.NODE_ENV === 'production';
-
 const config = {
+  mode: "production",
+
   context: path.resolve(__dirname, 'src'),
-  entry: {
-    app: path.join(__dirname, 'src', 'index.jsx'),
-  },
-  mode: IS_PROD ? 'production': 'development',
+  
+  entry: "./index.tsx",
+
   output: {
     path: path.resolve(__dirname, 'lib'),
     filename: 'index.js',
     library: package.name,
-    libraryTarget:'umd'
+    libraryTarget:'umd',
+    umdNamedDefine: true
   },
-  optimization: {
-    minimize: true
+  resolve: {
+    extensions: [ ".js", ".jsx", ".ts", ".tsx" ]
   },
   module: {
     rules: [
-    {
-      test: /\.jsx?$/,
-      exclude: /(node_modules|bower_components)/,
-      use: {
-        loader: 'babel-loader',
+      {
+        test: /\.tsx?$/,
+        exclude: /node_modules/,
+        use: 'ts-loader'
       }
-    }
     ]
-  },
-  plugins: [
-    new CleanWebpackPlugin(['lib'])
-  ]
+  }
 };
 
 module.exports = config;

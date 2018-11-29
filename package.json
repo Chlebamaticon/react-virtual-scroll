@@ -1,6 +1,6 @@
 {
   "name": "@tenchleb/react-virtual-scroll",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "UBER SCROLLER",
   "main": "./lib/index.js",
   "author": "Jakub Chlebowicz <contact@jakubchlebowicz.com>",

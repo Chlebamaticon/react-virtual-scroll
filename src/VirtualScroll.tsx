@@ -19,7 +19,6 @@ interface VirtualScrollState {
 
 export class VirtualScroll extends React.Component<VirtualScrollProps, VirtualScrollState> {
     private wrapper: React.RefObject<HTMLDivElement> = React.createRef();
-    private mutation: MutationObserver;
     public props: VirtualScrollProps;
     public state: VirtualScrollState = {
         scrollTop: 0

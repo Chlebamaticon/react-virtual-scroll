@@ -1,10 +1,11 @@
 import * as React from "react";
-import { VirtualScrollList } from "./VirtualScrollList";
 import styles from "./styles";
+import { Bind, Suspend } from './helpers';
+import { VirtualScrollList } from "./VirtualScrollList";
 
 interface VirtualScrollProps {
     height: number,
-    children: React.ReactNodeArray,
+    children: React.ReactChild[],
 
     touchBefore: number,
     touchAfter: number,
@@ -13,28 +14,27 @@ interface VirtualScrollProps {
 }
 
 interface VirtualScrollState {
-  offsetIndex: number,
-  endIndex: number,
-  selection: React.ReactNode[] | string
+    scrollTop: number;
 }
 
 export class VirtualScroll extends React.Component<VirtualScrollProps, VirtualScrollState> {
     private wrapper: React.RefObject<HTMLDivElement> = React.createRef();
+    private mutation: MutationObserver;
+    public props: VirtualScrollProps;
+    public state: VirtualScrollState = {
+        scrollTop: 0
+    }
 
     static defaultProps = {
         touchBefore: 0,
         touchAfter: 0,
     }
 
-    state: VirtualScrollState = {
-        offsetIndex: 0,
-        endIndex: 0,
-        selection: []
-    }
-
-    select(scrollTop: number, clientHeight: number) {
+    select({ scrollTop }: VirtualScrollState = this.state) {
+        const { current: element } = this.wrapper;
         const { height, children } = this.props;
 
+        const clientHeight = (element && element.clientHeight) || 0;
         const offsetIndex = Math.floor(Math.abs(scrollTop) / height);
         const endIndex = Math.round((scrollTop + clientHeight) / height);
 
@@ -45,42 +45,52 @@ export class VirtualScroll extends React.Component<VirtualScrollProps, VirtualSc
         }
     }
 
-    reshuffle() {
+    @Bind
+    onScroll() {
         const { current: element } = this.wrapper;
         const scrollTop = (element && element.scrollTop) || 0;
-        const clientHeight = (element && element.clientHeight) || 0;
 
-        const {
-            offsetIndex,
-            endIndex,
-            selection
-        } = this.select(scrollTop, clientHeight);
-
-        this.setState({
-            offsetIndex,
-            endIndex,
-            selection
-        });
+        this.setState({ scrollTop });
     }
 
-    shouldComponentUpdate(nextProps: VirtualScrollProps, nextState: VirtualScrollState) {
-        const { children } = this.props;
-        const { offsetIndex, endIndex } = this.state;
+    @Bind
+    onResize() {
+        const { current: element } = this.wrapper;
+        const scrollTop = (element && element.scrollTop) || 0;
 
-        return (
-            !(offsetIndex === nextState.offsetIndex
-            && endIndex === nextState.endIndex ) 
-            || ( children.length !== nextProps.children.length )
-        );
+        this.setState({ scrollTop });
+    }
+
+    @Suspend()
+    touchdown(range: number, length: number) {
+        const { onTouchdown } = this.props;
+
+        return onTouchdown(range, length);
+    }
+
+    @Suspend()
+    touchAfter(range: number, length: number) {
+        const { onTouchAfter } = this.props;
+
+        return onTouchAfter(range, length);
     }
 
     componentDidMount() {
-        this.reshuffle();
+        const { current: wrapper } = this.wrapper;
+
+        this.onResize();
+        this.onScroll();
+
+        document.addEventListener('resize', this.onResize);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener('resize', this.onResize);
     }
 
     componentDidUpdate() {
-        const { selection, endIndex } = this.state;
         const { children, touchAfter } = this.props;
+        const { selection, endIndex } = this.select(this.state);
 
         const didTouchAfter = () => (children.length - touchAfter) < touchAfter 
             ? true : (children.length - touchAfter) <= endIndex;
@@ -88,15 +98,15 @@ export class VirtualScroll extends React.Component<VirtualScrollProps, VirtualSc
         const didTouchdown = () => endIndex === children.length;
 
         if ( this.props.onTouchAfter && didTouchAfter() )
-            this.props.onTouchAfter(selection.length, children.length);
+            this.touchAfter(selection.length, children.length);
 
         if ( this.props.onTouchdown && didTouchdown() )
-            this.props.onTouchdown(selection.length, children.length);
+            this.touchdown(selection.length, children.length);
     }
 
     render() {
         const { height, children } = this.props;
-        const { offsetIndex, selection } = this.state;
+        const { offsetIndex, endIndex, selection } = this.select(this.state);
 
         const renderList = () => {
             if ( typeof selection === 'string' )
@@ -116,7 +126,7 @@ export class VirtualScroll extends React.Component<VirtualScrollProps, VirtualSc
                 className="virtual-scroll-wrapper"
                 style={ styles["virtual-scroll-wrapper"] }
                 ref={this.wrapper}
-                onScroll={() => this.reshuffle()}
+                onScroll={this.onScroll}
             >
                 { renderList() }
 

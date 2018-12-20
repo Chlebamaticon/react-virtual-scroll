@@ -5,7 +5,7 @@ interface VirtualScrollListProps {
     height: number,
     offsetIndex: number,
     length: number,
-    list: React.ReactNode[]
+    list: React.ReactChild[]
 }
 
 interface VirtualScrollListState {}
